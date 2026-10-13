@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Detective Mystery Classroom / 全球偵探懸疑課堂遊戲</title>
+    <!-- Tailwind CSS for modern responsive projector UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            user-select: none;
+            overflow-x: hidden;
+        }
+        .wood-texture {
+            background: linear-gradient(135deg, #2b1810 0%, #1a0f0a 100%);
+        }
+        .parchment-panel {
+            background: rgba(20, 24, 33, 0.95);
+            backdrop-filter: blur(8px);
+            border: 2px solid rgba(212, 175, 55, 0.4);
+        }
+        /* Custom smooth scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.3);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d4af37;
+            border-radius: 4px;
+        }
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 15px rgba(212, 175, 55, 0.4); }
+            50% { box-shadow: 0 0 30px rgba(212, 175, 55, 0.8); }
+        }
+        .glow-box {
+            animation: pulse-glow 3s infinite;
+        }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen flex flex-col">
+
+    <script>
+        // Web Audio API Sound Synthesizer
+        const SoundFX = {
+            ctx: null,
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            },
+            playClick() {
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(800, this.ctx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.08);
+            },
+            playSuccess() {
+                this.init();
+                const now = this.ctx.currentTime;
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + i * 0.08);
+                    gain.gain.setValueAtTime(0.2, now + i * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.3);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + i * 0.08);
+                    osc.stop(now + i * 0.08 + 0.3);
+                });
+            },
+            playError() {
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.linearRampToValueAtTime(120, now + 0.25);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            },
+            playCollect() {
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.exponentialRampToValueAtTime(1320, now + 0.2);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            }
+        };
+    </script>
+
+    <!-- Top Classroom Header -->
+    <header class="wood-texture border-b border-amber-600/40 px-4 py-3 flex flex-wrap items-center justify-between shadow-lg z-30">
+        <div class="flex items-center space-x-3">
+            <div class="bg-amber-600/30 p-2 rounded-xl border border-amber-400/50">
+                <svg class="w-7 h-7 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-lg md:text-xl font-black tracking-wide text-amber-200">Global Detective Mystery / 全球偵探懸疑課堂</h1>
+                <p class="text-xs text-amber-300/80">Past Progressive Investigation / 過去進行式懸疑調查</p>
+            </div>
+        </div>
+
+        <!-- Classroom Competition & Timer Widget -->
+        <div class="flex items-center space-x-4 my-2 sm:my-0">
+            <!-- Teams Scoreboard -->
+            <div class="flex bg-gray-900/80 border border-amber-500/40 rounded-xl p-1 space-x-2 text-sm font-bold">
+                <div id="team1Box" class="px-3 py-1 bg-blue-600/40 text-blue-200 rounded-lg border border-blue-400/50 flex items-center space-x-2 cursor-pointer transition hover:bg-blue-600/60" onclick="addScore(1)">
+                    <span>Team A (藍隊):</span>
+                    <span id="score1" class="text-lg text-white">0</span>
+                </div>
+                <div id="team2Box" class="px-3 py-1 bg-red-600/40 text-red-200 rounded-lg border border-red-400/50 flex items-center space-x-2 cursor-pointer transition hover:bg-red-600/60" onclick="addScore(2)">
+                    <span>Team B (紅隊):</span>
+                    <span id="score2" class="text-lg text-white">0</span>
+                </div>
+            </div>
+
+            <!-- Timer Widget -->
+            <div class="bg-gray-900/90 border border-amber-500/40 px-3 py-1.5 rounded-xl flex items-center space-x-2">
+                <svg class="w-5 h-5 text-amber-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span id="timerDisplay" class="font-mono font-bold text-amber-300 text-base">05:00</span>
+                <button onclick="toggleTimer()" id="timerToggleBtn" class="text-xs bg-amber-600 hover:bg-amber-500 text-white px-2 py-1 rounded font-semibold transition">Pause/Start</button>
+            </div>
+
+            <!-- Fullscreen Projector Toggle -->
+            <button onclick="toggleFullscreen()" class="bg-amber-700 hover:bg-amber-600 text-white p-2 rounded-xl border border-amber-500 transition shadow" title="Projector Mode / 投影模式">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Interactive Area -->
+    <main class="flex-1 flex flex-col lg:flex-row relative bg-gray-900 overflow-hidden">
+        
+        <!-- Left/Center: Room Canvas & Exploration Area -->
+        <div class="flex-1 flex flex-col relative bg-gray-950 overflow-hidden">
+            
+            <!-- Room Navigation Bar / Status Banner -->
+            <div class="bg-gray-900/90 border-b border-gray-800 px-4 py-2.5 flex items-center justify-between z-20">
+                <div class="flex items-center space-x-3">
+                    <span id="currentRoomBadge" class="bg-amber-500 text-gray-950 font-black px-3 py-1 rounded-lg text-xs md:text-sm uppercase tracking-wider">Japan / 日本 (Room 1)</span>
+                    <span id="roomStatusText" class="text-xs md:text-sm text-gray-300 font-medium">Find hidden clues & solve Yuki's alibi! / 尋找隱藏線索並破解由紀的不不在場證明！</span>
+                </div>
+                <!-- Room Selector Tabs for Classroom flexibility -->
+                <div class="hidden sm:flex space-x-1">
+                    <button onclick="switchRoom(0)" class="room-tab px-2.5 py-1 text-xs rounded font-bold bg-amber-600 text-white transition">Japan</button>
+                    <button onclick="switchRoom(1)" class="room-tab px-2.5 py-1 text-xs rounded font-bold bg-gray-800 text-gray-300 hover:bg-gray-700 transition">USA</button>
+                    <button onclick="switchRoom(2)" class="room-tab px-2.5 py-1 text-xs rounded font-bold bg-gray-800 text-gray-300 hover:bg-gray-700 transition">England</button>
+                    <button onclick="switchRoom(3)" class="room-tab px-2.5 py-1 text-xs rounded font-bold bg-gray-800 text-gray-300 hover:bg-gray-700 transition">Mexico</button>
+                    <button onclick="switchRoom(4)" class="room-tab px-2.5 py-1 text-xs rounded font-bold bg-gray-800 text-gray-300 hover:bg-gray-700 transition">Ireland</button>
+                </div>
+            </div>
+
+            <!-- Canvas Viewport for Room and Fully Animated Characters & Objects -->
+            <div class="relative flex-1 w-full h-[480px] lg:h-[580px] bg-gray-950 overflow-hidden cursor-crosshair">
+                <canvas id="roomCanvas" class="w-full h-full block"></canvas>
+
+                <!-- Interactive Hotspot Overlays -->
+                <div id="hotspotContainer" class="absolute inset-0 pointer-events-none z-10"></div>
+
+                <!-- Floating Detective Speech / Message Overlay -->
+                <div id="dialogueBox" class="absolute bottom-4 left-4 right-4 md:left-12 md:right-12 parchment-panel p-4 rounded-2xl shadow-2xl flex items-start space-x-4 transition-all duration-300 transform translate-y-32 opacity-0 pointer-events-none z-30">
+                    <div class="w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center flex-shrink-0 font-black text-gray-950 text-xl border-2 border-amber-300">偵</div>
+                    <div class="flex-1">
+                        <h4 id="dialogueTitle" class="text-amber-300 font-bold text-sm tracking-wide">Inspector Note / 偵探筆記</h4>
+                        <p id="dialogueText" class="text-gray-200 text-sm md:text-base mt-1"></p>
+                    </div>
+                    <button onclick="closeDialogue()" class="bg-gray-800 hover:bg-gray-700 text-amber-300 p-1.5 rounded-lg border border-amber-500/40 text-xs font-bold">Close / 關閉</button>
+                </div>
+
+                <!-- Final Treasure Chest Modal Trigger Overlay -->
+                <div id="finalVictoryBanner" class="absolute inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-40 hidden">
+                    <div class="parchment-panel p-8 rounded-3xl max-w-lg border-2 border-amber-400 shadow-2xl">
+                        <div class="w-20 h-20 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-amber-400 glow-box">
+                            <svg class="w-10 h-10 text-amber-300 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                            </svg>
+                        </div>
+                        <h2 class="text-2xl md:text-3xl font-black text-amber-200 mb-2">Case Solved Successfully! / 懸疑案完美偵破！</h2>
+                        <p class="text-gray-300 text-sm md:text-base mb-6">All 5 countries investigated, hidden clues collected, and past progressive alibis verified! Great job detectives!</p>
+                        <button onclick="resetGame()" class="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-gray-950 font-black px-8 py-3 rounded-xl shadow-lg transition transform hover:scale-105">Play Again / 重新開始</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls footer for movement & interaction -->
+            <div class="bg-gray-900 border-t border-gray-800 px-4 py-3 flex items-center justify-between z-20">
+                <div class="flex items-center space-x-2 text-xs text-gray-400">
+                    <span class="bg-gray-800 px-2 py-1 rounded text-amber-300 font-mono">Controls:</span>
+                    <span>Click on room furniture/objects to inspect or click ground to walk.</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="triggerDetectiveCelebrate()" class="bg-amber-600/30 hover:bg-amber-600/50 text-amber-200 border border-amber-500/40 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1">
+                        <span>Celebrate / 慶祝</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar: Inventory & Witness Grammar Alibi Challenge Panel -->
+        <div class="w-full lg:w-96 wood-texture border-t lg:border-t-0 lg:border-l border-amber-600/40 flex flex-col z-20 shadow-2xl">
+            
+            <!-- Sidebar Header Tabs -->
+            <div class="flex border-b border-amber-600/40 bg-gray-950/60">
+                <button onclick="switchSidebarTab('quest')" id="tabQuest" class="flex-1 py-3 text-center text-xs md:text-sm font-bold text-amber-300 border-b-2 border-amber-400 bg-amber-950/30 transition">Witness Alibi / 證人嫌疑</button>
+                <button onclick="switchSidebarTab('inventory')" id="tabInventory" class="flex-1 py-3 text-center text-xs md:text-sm font-bold text-gray-400 border-b-2 border-transparent hover:text-amber-200 transition">Inventory (<span id="inventoryCount">0</span>/5)</button>
+            </div>
+
+            <!-- Tab 1: Witness Grammar Alibi Challenge Content -->
+            <div id="panelQuest" class="flex-1 p-4 flex flex-col space-y-4 overflow-y-auto">
+                <div class="parchment-panel p-4 rounded-xl relative overflow-hidden">
+                    <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-amber-500/10 rounded-full blur-xl"></div>
+                    <div class="flex items-center justify-between mb-2">
+                        <span id="witnessCountryBadge" class="bg-amber-600 text-white text-xs font-black px-2.5 py-1 rounded-md uppercase">Japan / 日本</span>
+                        <span id="witnessName" class="text-amber-200 font-bold text-sm">Yuki (由紀)</span>
+                    </div>
+
+                    <!-- Witness Action Animation Box -->
+                    <div class="relative w-full h-36 bg-gray-950 rounded-xl border border-amber-500/30 overflow-hidden my-3 flex flex-col items-center justify-center">
+                        <canvas id="witnessCanvas" class="w-full h-full absolute inset-0"></canvas>
+                        <div class="absolute top-2 left-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded text-[11px] font-bold text-amber-300 border border-amber-500/40">
+                            At 7:00 p.m. / 晚上七點時
+                        </div>
+                        <button onclick="replayWitnessAction()" class="absolute bottom-2 right-2 bg-amber-600 hover:bg-amber-500 text-white px-2.5 py-1 rounded-lg text-xs font-bold shadow transition flex items-center space-x-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            <span>Replay / 重播動作</span>
+                        </button>
+                    </div>
+
+                    <p id="witnessDescription" class="text-xs text-gray-300 leading-relaxed mb-3">
+                        Yuki was sliding his arms into his detective jacket and adjusting it right when the clock struck 7:00 p.m.
+                    </p>
+
+                    <!-- Grammar Question Box -->
+                    <div class="border-t border-amber-600/30 pt-3 mt-2">
+                        <h5 class="text-xs font-bold text-amber-300 mb-1.5">Past Progressive Challenge / 過去進行式挑戰：</h5>
+                        <p id="grammarQuestionText" class="text-xs text-gray-200 mb-3 font-medium">What was Yuki doing at 7:00 p.m.? / 晚上七點時由紀正在做什麼？</p>
+                        
+                        <div id="optionsContainer" class="space-y-2">
+                            <!-- Options populated dynamically -->
+                        </div>
+
+                        <div id="feedbackBox" class="mt-3 p-2.5 rounded-lg text-xs font-semibold hidden"></div>
+                    </div>
+                </div>
+
+                <!-- Country progress list -->
+                <div class="bg-gray-900/80 border border-gray-800 rounded-xl p-3">
+                    <h6 class="text-xs font-bold text-amber-400 mb-2 uppercase tracking-wider">Investigation Roadmap / 案件進度</h6>
+                    <div id="countryRoadmap" class="space-y-1.5 text-xs">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Inventory Content -->
+            <div id="panelInventory" class="flex-1 p-4 hidden flex-col overflow-y-auto">
+                <h4 class="text-sm font-bold text-amber-300 mb-3 flex items-center justify-between">
+                    <span>Collected Evidence / 收集證物</span>
+                    <span id="invHeaderCount" class="text-xs bg-amber-600/30 px-2 py-0.5 rounded text-amber-200 border border-amber-500/40">0 / 5</span>
+                </h4>
+                <div id="inventoryGrid" class="grid grid-cols-1 gap-3">
+                    <!-- Inventory items populated dynamically -->
+                </div>
+                <div class="mt-6 p-4 rounded-xl bg-gray-900/90 border border-amber-500/30 text-center">
+                    <p class="text-xs text-gray-400 mb-2">Collect all 5 country evidence items to unlock the final treasure chest and solve the mystery!</p>
+                    <div id="finalChestStatus" class="inline-block px-3 py-1 rounded-full text-xs font-bold bg-gray-800 text-gray-400 border border-gray-700">Final Chest: Locked / 最終寶箱：未解鎖</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Game Data Model for 5 Countries
+        const countriesData = [
+            {
+                id: 0,
+                nameEN: "Japan",
+                nameTW: "日本",
+                roomTitle: "Japan / 日本 (Pumpkin & Detective Study)",
+                characterName: "Yuki (由紀)",
+                actionDescEN: "Yuki was sliding his arms into a detective jacket and adjusting it.",
+                actionDescTW: "晚上七點時，由紀正把雙臂穿進偵探夾克並調整它。",
+                question: "What was Yuki doing at 7:00 p.m.?",
+                questionTW: "晚上七點時由紀正在做什麼？",
+                options: [
+                    { text: "He was sliding his arms into his detective jacket and adjusting it.", correct: true },
+                    { text: "He were sliding his arms into his jacket.", correct: false },
+                    { text: "He was slide his detective jacket.", correct: false }
+                ],
+                clueName: "Detective Pocket Watch / 偵探懷錶",
+                clueDesc: "Found inside the antique desk drawer in Japan.",
+                solved: false,
+                clueCollected: false
+            },
+            {
+                id: 1,
+                nameEN: "USA",
+                nameTW: "美國",
+                roomTitle: "USA / 美國 (Orange Room & Gift Boxes)",
+                characterName: "Ben & Volunteer (班與志工)",
+                actionDescEN: "Ben and a volunteer were picking up candy and placing it inside bags.",
+                actionDescTW: "晚上七點時，班與志工正在拿起糖果並把它們放進袋子裡。",
+                question: "What were Ben and the volunteer doing at 7:00 p.m.?",
+                questionTW: "晚上七點時班與志工正在做什麼？",
+                options: [
+                    { text: "They were picking up candy and placing it inside bags.", correct: true },
+                    { text: "They was pick up candy inside bags.", correct: false },
+                    { text: "They were picked up candy.", correct: false }
+                ],
+                clueName: "Magical Candy Bag / 魔法糖果袋",
+                clueDesc: "Discovered behind the parted curtains in the USA room.",
+                solved: false,
+                clueCollected: false
+            },
+            {
+                id: 2,
+                nameEN: "England",
+                nameTW: "英國",
+                roomTitle: "England / 英國 (Baker's Kitchen & Pastries)",
+                characterName: "Oliver (奧利佛)",
+                actionDescEN: "Oliver was picking up small cakes and arranging them on a plate.",
+                actionDescTW: "晚上七點時，奧利佛正拿起小蛋糕並將它們排在盤子上。",
+                question: "What was Oliver doing at 7:00 p.m.?",
+                questionTW: "晚上七點時奧利佛正在做什麼？",
+                options: [
+                    { text: "He was picking up small cakes and arranging them on a plate.", correct: true },
+                    { text: "He were pick up small cakes on a plate.", correct: false },
+                    { text: "He was arranged small cakes.", correct: false }
+                ],
+                clueName: "Royal Baker's Whisk / 皇家烘焙打蛋器",
+                clueDesc: "Found when opening the antique wooden cabinet doors in England.",
+                solved: false,
+                clueCollected: false
+            },
+            {
+                id: 3,
+                nameEN: "Mexico",
+                nameTW: "墨西哥",
+                roomTitle: "Mexico / 墨西哥 (Papel Picado & Marigolds)",
+                characterName: "Sofia & Volunteer (索菲亞與志工)",
+                actionDescEN: "Sofia and a volunteer were folding paper and assembling paper flowers.",
+                actionDescTW: "晚上七點時，索菲亞與志工正在摺紙並組裝紙花。",
+                question: "What were Sofia and the volunteer doing at 7:00 p.m.?",
+                questionTW: "晚上七點時索菲亞與志工正在做什麼？",
+                options: [
+                    { text: "They were folding paper and assembling paper flowers.", correct: true },
+                    { text: "They was fold paper flowers.", correct: false },
+                    { text: "They were folded paper.", correct: false }
+                ],
+                clueName: "Festive Marigold Brooch / 節慶萬壽菊胸針",
+                clueDesc: "Revealed under the lifted tablecloth in Mexico.",
+                solved: false,
+                clueCollected: false
+            },
+            {
+                id: 4,
+                nameEN: "Ireland",
+                nameTW: "愛爾蘭",
+                roomTitle: "Ireland / 英國(愛爾蘭) (Turnip Lantern Studio)",
+                characterName: "Mia (米婭)",
+                actionDescEN: "Mia was moving a pencil across paper while drawing a turnip lantern.",
+                actionDescTW: "晚上七點時，米婭正一邊在紙上移動鉛筆，一邊畫著蕪菁燈籠。",
+                question: "What was Mia doing at 7:00 p.m.?",
+                questionTW: "晚上七點時米婭正在做什麼？",
+                options: [
+                    { text: "She was moving a pencil across paper while drawing a turnip lantern.", correct: true },
+                    { text: "She were move a pencil across paper.", correct: false },
+                    { text: "She was moved a turnip lantern.", correct: false }
+                ],
+                clueName: "Ancient Turnip Lantern / 古代蕪菁燈籠",
+                clueDesc: "Discovered behind the hidden studio cabinet shelf in Ireland.",
+                solved: false,
+                clueCollected: false
+            }
+        ];
+
+        let currentRoomIndex = 0;
+        let scoreTeam1 = 0;
+        let scoreTeam2 = 0;
+        let timerSeconds = 300;
+        let timerInterval = null;
+        let timerRunning = true;
+        let inventory = [];
+
+        // Interactive object states per room
+        let roomStates = [
+            { drawerOpen: false, inspected: false }, // Japan
+            { curtainsOpen: false, inspected: false }, // USA
+            { cabinetOpen: false, inspected: false }, // England
+            { tableclothLifted: false, inspected: false }, // Mexico
+            { shelfRevealed: false, inspected: false } // Ireland
+        ];
+
+        // Detective character state
+        let detective = {
+            x: 120,
+            y: 320,
+            targetX: 120,
+            targetY: 320,
+            isWalking: false,
+            facing: 'right',
+            animFrame: 0,
+            breathing: 0,
+            celebrating: false,
+            celebrateTimer: 0
+        };
+
+        // Canvas setup
+        const canvas = document.getElementById('roomCanvas');
+        const ctx = canvas.getContext('2d');
+        const witnessCanvas = document.getElementById('witnessCanvas');
+        const wCtx = witnessCanvas.getContext('2d');
+        let witnessAnimFrame = 0;
+
+        function resizeCanvases() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+            witnessCanvas.width = witnessCanvas.parentElement.clientWidth;
+            witnessCanvas.height = witnessCanvas.parentElement.clientHeight;
+        }
+
+        window.addEventListener('resize', resizeCanvases);
+
+        // Main Animation & Render Loop
+        function gameLoop() {
+            updateDetective();
+            renderRoom();
+            witnessAnimFrame++;
+            renderWitnessAnimation();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updateDetective() {
+            // Smooth movement toward target X, Y
+            const dx = detective.targetX - detective.x;
+            const dy = detective.targetY - detective.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist > 3) {
+                detective.isWalking = true;
+                detective.x += (dx / dist) * 2.5;
+                detective.y += (dy / dist) * 1.5;
+                detective.facing = dx > 0 ? 'right' : 'left';
+                detective.animFrame += 0.15;
+            } else {
+                detective.isWalking = false;
+            }
+
+            detective.breathing += 0.05;
+
+            if (detective.celebrating) {
+                detective.celebrateTimer--;
+                if (detective.celebrateTimer <= 0) {
+                    detective.celebrating = false;
+                }
+            }
+        }
+
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            // Move detective toward click
+            detective.targetX = Math.max(50, Math.min(canvas.width - 50, clickX));
+            detective.targetY = Math.max(220, Math.min(canvas.height - 40, clickY));
+            SoundFX.playClick();
+
+            // Check if clicking interactive furniture object
+            checkRoomInteractions(clickX, clickY);
+        });
+
+        // Room background & layered graphics rendering
+        function renderRoom() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const w = canvas.width;
+            const h = canvas.height;
+
+            // Room specific theme colors and background art simulation
+            if (currentRoomIndex === 0) {
+                // Japan / Green Pumpkin Room
+                renderJapanRoom(w, h);
+            } else if (currentRoomIndex === 1) {
+                // USA / Orange Room with boxes & purple table
+                renderUSARoom(w, h);
+            } else if (currentRoomIndex === 2) {
+                // England / Baker's kitchen
+                renderEnglandRoom(w, h);
+            } else if (currentRoomIndex === 3) {
+                // Mexico / Papel picado room
+                renderMexicoRoom(w, h);
+            } else if (currentRoomIndex === 4) {
+                // Ireland / Turnip studio
+                renderIrelandRoom(w, h);
+            }
+
+            // Render Detective Character
+            renderDetectiveCharacter();
+        }
+
+        function drawRoomBase(wallColor, floorColor, w, h) {
+            // Walls
+            ctx.fillStyle = wallColor;
+            ctx.fillRect(0, 0, w, h * 0.65);
+
+            // Floor
+            ctx.fillStyle = floorColor;
+            ctx.fillRect(0, h * 0.65, w, h * 0.35);
+
+            // Floorboards perspective lines
+            ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < w; i += 60) {
+                ctx.beginPath();
+                ctx.moveTo(i, h * 0.65);
+                ctx.lineTo(i - 40, h);
+                ctx.stroke();
+            }
+
+            // Window with night view
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(w * 0.35, h * 0.1, w * 0.3, h * 0.35);
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 6;
+            ctx.strokeRect(w * 0.35, h * 0.1, w * 0.3, h * 0.35);
+            // Window pane grid
+            ctx.beginPath();
+            ctx.moveTo(w * 0.5, h * 0.1); ctx.lineTo(w * 0.5, h * 0.45);
+            ctx.moveTo(w * 0.35, h * 0.275); ctx.lineTo(w * 0.65, h * 0.275);
+            ctx.stroke();
+        }
+
+        function renderJapanRoom(w, h) {
+            drawRoomBase('#1e3a2f', '#2a1a12', w, h);
+            
+            // Left bookshelf cabinet
+            ctx.fillStyle = '#2d1810';
+            ctx.fillRect(w * 0.05, h * 0.2, w * 0.22, h * 0.5);
+            ctx.strokeStyle = '#4a2818';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(w * 0.05, h * 0.2, w * 0.22, h * 0.5);
+
+            // Central Table
+            ctx.fillStyle = '#3d2314';
+            ctx.fillRect(w * 0.25, h * 0.5, w * 0.5, h * 0.2);
+            ctx.strokeRect(w * 0.25, h * 0.5, w * 0.5, h * 0.2);
+
+            // Pumpkins on table
+            ctx.fillStyle = '#ea580c';
+            ctx.beginPath(); ctx.arc(w * 0.4, h * 0.48, 22, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(w * 0.5, h * 0.46, 26, 0, Math.PI * 2); ctx.fill();
+
+            // Interactive Drawer on desk
+            const state = roomStates[0];
+            ctx.fillStyle = state.drawerOpen ? '#5c3a21' : '#4a2818';
+            const drawerWidth = w * 0.15;
+            const drawerX = state.drawerOpen ? w * 0.42 - 20 : w * 0.42;
+            ctx.fillRect(drawerX, h * 0.58, drawerWidth, h * 0.08);
+            ctx.strokeStyle = '#d4af37';
+            ctx.strokeRect(drawerX, h * 0.58, drawerWidth, h * 0.08);
+
+            // Clue item inside drawer if open
+            if (state.drawerOpen && !countriesData[0].clueCollected) {
+                ctx.fillStyle = '#d4af37';
+                ctx.beginPath();
+                ctx.arc(drawerX + 30, h * 0.62, 10, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Room instructions overlay text
+            ctx.fillStyle = '#fef3c7';
+            ctx.font = 'bold 13px Inter';
+            ctx.fillText("Click desk drawer to open & inspect clue", w * 0.32, h * 0.85);
+        }
+
+        function renderUSARoom(w, h) {
+            drawRoomBase('#3d2414', '#1f130b', w, h);
+
+            // Large table with purple cloth
+            ctx.fillStyle = '#581c87';
+            ctx.fillRect(w * 0.2, h * 0.5, w * 0.6, h * 0.25);
+            ctx.strokeStyle = '#7e22ce';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(w * 0.2, h * 0.5, w * 0.6, h * 0.25);
+
+            // Gift boxes on left
+            ctx.fillStyle = '#ea580c';
+            ctx.fillRect(w * 0.08, h * 0.45, w * 0.12, h * 0.25);
+            ctx.fillStyle = '#0284c7';
+            ctx.fillRect(w * 0.1, h * 0.38, w * 0.1, h * 0.15);
+
+            // Interactive Curtains
+            const state = roomStates[1];
+            ctx.fillStyle = state.curtainsOpen ? '#334155' : '#7f1d1d';
+            // Left curtain parted
+            ctx.fillRect(w * 0.32, h * 0.1, state.curtainsOpen ? w * 0.05 : w * 0.12, h * 0.35);
+            // Right curtain parted
+            ctx.fillRect(state.curtainsOpen ? w * 0.63 : w * 0.56, h * 0.1, state.curtainsOpen ? w * 0.05 : w * 0.12, h * 0.35);
+
+            if (state.curtainsOpen && !countriesData[1].clueCollected) {
+                ctx.fillStyle = '#38bdf8';
+                ctx.fillRect(w * 0.46, h * 0.25, 20, 25);
+            }
+
+            ctx.fillStyle = '#fef3c7';
+            ctx.font = 'bold 13px Inter';
+            ctx.fillText("Click curtains to part and reveal hidden USA clue", w * 0.28, h * 0.88);
+        }
+
+        function renderEnglandRoom(w, h) {
+            drawRoomBase('#1b3a36', '#142624', w, h);
+
+            // Wooden baker's cabinet with glass shelves
+            ctx.fillStyle = '#2d1b10';
+            ctx.fillRect(w * 0.55, h * 0.2, w * 0.35, h * 0.55);
+            ctx.strokeStyle = '#4a2818';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(w * 0.55, h * 0.2, w * 0.35, h * 0.55);
+
+            // Pastry trays inside cabinet
+            ctx.fillStyle = '#fef3c7';
+            for (let i = 0; i < 4; i++) {
+                ctx.fillRect(w * 0.58, h * (0.28 + i * 0.1), w * 0.29, 8);
+            }
+
+            // Interactive Cabinet Doors
+            const state = roomStates[2];
+            if (!state.cabinetOpen) {
+                ctx.fillStyle = '#3d2414';
+                ctx.fillRect(w * 0.55, h * 0.2, w * 0.175, h * 0.55);
+                ctx.fillRect(w * 0.725, h * 0.2, w * 0.175, h * 0.55);
+                ctx.strokeStyle = '#d4af37';
+                ctx.strokeRect(w * 0.55, h * 0.2, w * 0.35, h * 0.55);
+            } else if (!countriesData[2].clueCollected) {
+                // Clue inside cabinet
+                ctx.fillStyle = '#d4af37';
+                ctx.beginPath();
+                ctx.arc(w * 0.72, h * 0.45, 15, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.fillStyle = '#fef3c7';
+            ctx.font = 'bold 13px Inter';
+            ctx.fillText("Click cabinet doors to open & inspect England clue", w * 0.28, h * 0.88);
+        }
+
+        function renderMexicoRoom(w, h) {
+            drawRoomBase('#9a3412', '#7c2d12', w, h);
+
+            // Colorful Papel Picado garlands at top
+            const colors = ['#e11d48', '#2563eb', '#16a34a', '#ca8a04', '#9333ea'];
+            for (let i = 0; i < w; i += 40) {
+                ctx.fillStyle = colors[(i / 40) % colors.length];
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i + 20, 30);
+                ctx.lineTo(i + 40, 0);
+                ctx.fill();
+            }
+
+            // Central Table with festive cloth
+            ctx.fillStyle = '#0284c7';
+            ctx.fillRect(w * 0.25, h * 0.5, w * 0.5, h * 0.22);
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(w * 0.25, h * 0.5, w * 0.5, h * 0.22);
+
+            // Interactive Tablecloth lift
+            const state = roomStates[3];
+            if (state.tableclothLifted) {
+                // Cloth draped up
+                ctx.fillStyle = '#0284c7';
+                ctx.beginPath();
+                ctx.moveTo(w * 0.25, h * 0.5);
+                ctx.quadraticCurveTo(w * 0.5, h * 0.35, w * 0.75, h * 0.5);
+                ctx.fill();
+
+                if (!countriesData[3].clueCollected) {
+                    ctx.fillStyle = '#f43f5e';
+                    ctx.beginPath();
+                    ctx.arc(w * 0.5, h * 0.55, 12, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            ctx.fillStyle = '#fef3c7';
+            ctx.font = 'bold 13px Inter';
+            ctx.fillText("Click table to lift tablecloth & reveal Mexico clue", w * 0.28, h * 0.88);
+        }
+
+        function renderIrelandRoom(w, h) {
+            drawRoomBase('#1e293b', '#0f172a', w, h);
+
+            // Studio bookshelf & turnip lantern shelf
+            ctx.fillStyle = '#334155';
+            ctx.fillRect(w * 0.15, h * 0.2, w * 0.3, h * 0.5);
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(w * 0.15, h * 0.2, w * 0.3, h * 0.5);
+
+            // Interactive hidden shelf panel
+            const state = roomStates[4];
+            ctx.fillStyle = state.shelfRevealed ? '#1e293b' : '#475569';
+            ctx.fillRect(w * 0.2, h * 0.35, w * 0.2, h * 0.15);
+            ctx.strokeStyle = '#d4af37';
+            ctx.strokeRect(w * 0.2, h * 0.35, w * 0.2, h * 0.15);
+
+            if (state.shelfRevealed && !countriesData[4].clueCollected) {
+                ctx.fillStyle = '#10b981';
+                ctx.beginPath();
+                ctx.arc(w * 0.3, h * 0.425, 12, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.fillStyle = '#fef3c7';
+            ctx.font = 'bold 13px Inter';
+            ctx.fillText("Click studio shelf panel to reveal Ireland clue", w * 0.28, h * 0.88);
+        }
+
+        function renderDetectiveCharacter() {
+            const x = detective.x;
+            const y = detective.y;
+            const breath = Math.sin(detective.breathing) * 2;
+
+            ctx.save();
+            ctx.translate(x, y + breath);
+
+            // Celebrate jump effect
+            let jumpOffset = 0;
+            if (detective.celebrating) {
+                jumpOffset = -Math.abs(Math.sin(detective.celebrateTimer * 0.3)) * 25;
+            }
+            ctx.translate(0, jumpOffset);
+
+            // Detective Trench Coat (Beige/Brown)
+            ctx.fillStyle = '#d97706';
+            ctx.beginPath();
+            ctx.roundRect(-14, -30, 28, 40, 6);
+            ctx.fill();
+            ctx.strokeStyle = '#92400e';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Detective Hat (Fedora)
+            ctx.fillStyle = '#b45309';
+            ctx.fillRect(-16, -52, 32, 8);
+            ctx.fillRect(-12, -64, 24, 14);
+
+            // Head / Face
+            ctx.fillStyle = '#fde68a';
+            ctx.beginPath();
+            ctx.arc(0, -38, 10, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Eyes (Blinking animation)
+            ctx.fillStyle = '#000';
+            const blink = Math.floor(detective.breathing * 10) % 25 === 0;
+            if (!blink) {
+                ctx.fillRect(-4, -40, 2, 3);
+                ctx.fillRect(2, -40, 2, 3);
+            } else {
+                ctx.fillRect(-4, -39, 2, 1);
+                ctx.fillRect(2, -39, 2, 1);
+            }
+
+            // Arms & Legs Animation
+            const legSwing = detective.isWalking ? Math.sin(detective.animFrame * 10) * 12 : 0;
+            const armSwing = detective.isWalking ? Math.cos(detective.animFrame * 10) * 10 : 0;
+
+            // Legs
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            // Left leg
+            ctx.moveTo(-6, 10);
+            ctx.lineTo(-6 + legSwing, 30);
+            // Right leg
+            ctx.moveTo(6, 10);
+            ctx.lineTo(6 - legSwing, 30);
+            ctx.stroke();
+
+            // Arms
+            ctx.beginPath();
+            // Left arm
+            ctx.moveTo(-14, -20);
+            ctx.lineTo(-22 + armSwing, -5);
+            // Right arm
+            ctx.moveTo(14, -20);
+            ctx.lineTo(22 - armSwing, -5);
+            ctx.stroke();
+
+            // Celebrate arms up
+            if (detective.celebrating) {
+                ctx.beginPath();
+                ctx.moveTo(-14, -25); ctx.lineTo(-26, -40);
+                ctx.moveTo(14, -25); ctx.lineTo(26, -40);
+                ctx.stroke();
+            }
+
+            ctx.restore();
+        }
+
+        // Witness Animation Canvas Render
+        function renderWitnessAnimation() {
+            wCtx.clearRect(0, 0, witnessCanvas.width, witnessCanvas.height);
+            const w = witnessCanvas.width;
+            const h = witnessCanvas.height;
+            const f = witnessAnimFrame;
+
+            wCtx.save();
+            wCtx.translate(w / 2, h / 2 + 10);
+
+            if (currentRoomIndex === 0) {
+                // Japan: Yuki sliding arms into detective jacket and adjusting it
+                wCtx.fillStyle = '#fde68a';
+                wCtx.beginPath(); wCtx.arc(0, -20, 14, 0, Math.PI * 2); wCtx.fill(); // Head
+                
+                // Jacket sliding & arms adjusting
+                wCtx.fillStyle = '#d97706';
+                const armOffset = Math.sin(f * 0.1) * 8;
+                wCtx.fillRect(-22 - armOffset, -5, 18, 25); // Left arm jacket
+                wCtx.fillRect(4 + armOffset, -5, 18, 25);  // Right arm jacket
+                wCtx.fillRect(-16, -5, 32, 35);            // Body
+            } else if (currentRoomIndex === 1) {
+                // USA: Ben picking up candy and placing inside bags
+                wCtx.fillStyle = '#fde68a';
+                wCtx.beginPath(); wCtx.arc(-20, -20, 12, 0, Math.PI * 2); wCtx.fill();
+                wCtx.beginPath(); wCtx.arc(20, -20, 12, 0, Math.PI * 2); wCtx.fill();
+
+                // Bag & Candy moving
+                wCtx.fillStyle = '#0284c7';
+                wCtx.fillRect(-8, 0, 16, 22); // Bag
+
+                const candyY = Math.sin(f * 0.15) * 15;
+                wCtx.fillStyle = '#ea580c';
+                wCtx.beginPath(); wCtx.arc(0, -15 + candyY, 6, 0, Math.PI * 2); wCtx.fill();
+            } else if (currentRoomIndex === 2) {
+                // England: Oliver picking up small cakes and arranging them on a plate
+                wCtx.fillStyle = '#fde68a';
+                wCtx.beginPath(); wCtx.arc(0, -25, 14, 0, Math.PI * 2); wCtx.fill();
+
+                // Plate
+                wCtx.fillStyle = '#e2e8f0';
+                wCtx.beginPath(); wCtx.ellipse(0, 20, 35, 10, 0, 0, Math.PI * 2); wCtx.fill();
+
+                // Small cakes moving onto plate
+                const cakeX = Math.sin(f * 0.1) * 20;
+                wCtx.fillStyle = '#f43f5e';
+                wCtx.beginPath(); wCtx.arc(cakeX, 10 - Math.abs(Math.sin(f * 0.1)) * 15, 8, 0, Math.PI * 2); wCtx.fill();
+            } else if (currentRoomIndex === 3) {
+                // Mexico: Sofia & volunteer folding paper and assembling paper flowers
+                wCtx.fillStyle = '#fde68a';
+                wCtx.beginPath(); wCtx.arc(-22, -20, 12, 0, Math.PI * 2); wCtx.fill();
+                wCtx.beginPath(); wCtx.arc(22, -20, 12, 0, Math.PI * 2); wCtx.fill();
+
+                // Paper folding animation
+                wCtx.fillStyle = '#10b981';
+                const fold = Math.sin(f * 0.12) * 12;
+                wCtx.fillRect(-15 + fold, 5, 30, 8);
+                wCtx.fillStyle = '#f59e0b';
+                wCtx.beginPath(); wCtx.arc(0, 5, 10 + Math.sin(f * 0.15) * 4, 0, Math.PI * 2); wCtx.fill();
+            } else if (currentRoomIndex === 4) {
+                // Ireland: Mia moving a pencil across paper while drawing turnip lantern
+                wCtx.fillStyle = '#fde68a';
+                wCtx.beginPath(); wCtx.arc(0, -22, 13, 0, Math.PI * 2); wCtx.fill();
+
+                // Paper & pencil drawing
+                wCtx.fillStyle = '#fef3c7';
+                wCtx.fillRect(-25, 0, 50, 30);
+
+                const pencilX = Math.sin(f * 0.2) * 15;
+                wCtx.fillStyle = '#ef4444';
+                wCtx.fillRect(pencilX, 10, 12, 4);
+            }
+
+            wCtx.restore();
+        }
+
+        function checkRoomInteractions(x, y) {
+            const state = roomStates[currentRoomIndex];
+            const country = countriesData[currentRoomIndex];
+
+            // Click interaction bounds depending on room
+            if (currentRoomIndex === 0) {
+                // Drawer click
+                if (x > canvas.width * 0.4 && x < canvas.width * 0.6 && y > canvas.height * 0.55 && y < canvas.height * 0.7) {
+                    state.drawerOpen = !state.drawerOpen;
+                    SoundFX.playClick();
+                    showDialogue("Drawer Opened!", "You opened the desk drawer and found a mysterious clue item!");
+                    if (state.drawerOpen && !country.clueCollected) {
+                        collectClue(country);
+                    }
+                }
+            } else if (currentRoomIndex === 1) {
+                // Curtains click
+                if (x > canvas.width * 0.3 && x < canvas.width * 0.7 && y > canvas.height * 0.1 && y < canvas.height * 0.5) {
+                    state.curtainsOpen = !state.curtainsOpen;
+                    SoundFX.playClick();
+                    showDialogue("Curtains Parted!", "The curtains parted to reveal the shelf and hidden evidence!");
+                    if (state.curtainsOpen && !country.clueCollected) {
+                        collectClue(country);
+                    }
+                }
+            } else if (currentRoomIndex === 2) {
+                // Cabinet click
+                if (x > canvas.width * 0.55 && x < canvas.width * 0.9 && y > canvas.height * 0.2 && y < canvas.height * 0.75) {
+                    state.cabinetOpen = !state.cabinetOpen;
+                    SoundFX.playClick();
+                    showDialogue("Cabinet Opened!", "The wooden cabinet doors swung open to reveal the royal baker's item!");
+                    if (state.cabinetOpen && !country.clueCollected) {
+                        collectClue(country);
+                    }
+                }
+            } else if (currentRoomIndex === 3) {
+                // Tablecloth click
+                if (x > canvas.width * 0.25 && x < canvas.width * 0.75 && y > canvas.height * 0.5 && y < canvas.height * 0.75) {
+                    state.tableclothLifted = !state.tableclothLifted;
+                    SoundFX.playClick();
+                    showDialogue("Tablecloth Lifted!", "The festive tablecloth lifted to reveal the hidden festive brooch!");
+                    if (state.tableclothLifted && !country.clueCollected) {
+                        collectClue(country);
+                    }
+                }
+            } else if (currentRoomIndex === 4) {
+                // Shelf reveal click
+                if (x > canvas.width * 0.15 && x < canvas.width * 0.45 && y > canvas.height * 0.3 && y < canvas.height * 0.55) {
+                    state.shelfRevealed = !state.shelfRevealed;
+                    SoundFX.playClick();
+                    showDialogue("Studio Shelf Revealed!", "The secret studio compartment slid open to reveal the ancient turnip lantern!");
+                    if (state.shelfRevealed && !country.clueCollected) {
+                        collectClue(country);
+                    }
+                }
+            }
+        }
+
+        function collectClue(country) {
+            if (!country.clueCollected) {
+                country.clueCollected = true;
+                inventory.push({
+                    name: country.clueName,
+                    desc: country.clueDesc,
+                    country: country.nameEN
+                });
+                SoundFX.playCollect();
+                triggerDetectiveCelebrate();
+                updateInventoryUI();
+                showDialogue("Evidence Collected! / 證物已收集！", `Successfully acquired: ${country.clueName}!`);
+                
+                if (inventory.length === 5) {
+                    setTimeout(() => {
+                        document.getElementById('finalVictoryBanner').classList.remove('hidden');
+                        SoundFX.playSuccess();
+                    }, 1200);
+                }
+            }
+        }
+
+        function triggerDetectiveCelebrate() {
+            detective.celebrating = true;
+            detective.celebrateTimer = 50;
+        }
+
+        function showDialogue(title, text) {
+            const box = document.getElementById('dialogueBox');
+            document.getElementById('dialogueTitle').innerText = title;
+            document.getElementById('dialogueText').innerText = text;
+            box.classList.remove('translate-y-32', 'opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                box.classList.add('translate-y-32', 'opacity-0', 'pointer-events-none');
+            }, 4000);
+        }
+
+        function closeDialogue() {
+            document.getElementById('dialogueBox').classList.add('translate-y-32', 'opacity-0', 'pointer-events-none');
+        }
+
+        function switchRoom(index) {
+            currentRoomIndex = index;
+            SoundFX.playClick();
+
+            // Update room tabs active state
+            document.querySelectorAll('.room-tab').forEach((tab, i) => {
+                if (i === index) {
+                    tab.className = 'room-tab px-2.5 py-1 text-xs rounded font-bold bg-amber-600 text-white transition';
+                } else {
+                    tab.className = 'room-tab px-2.5 py-1 text-xs rounded font-bold bg-gray-800 text-gray-300 hover:bg-gray-700 transition';
+                }
+            });
+
+            const country = countriesData[index];
+            document.getElementById('currentRoomBadge').innerText = `${country.nameEN} / ${country.nameTW} (Room ${index + 1})`;
+            document.getElementById('roomStatusText').innerText = `Find hidden clues & solve ${country.characterName}'s alibi!`;
+
+            loadWitnessChallenge(index);
+        }
+
+        function loadWitnessChallenge(index) {
+            const country = countriesData[index];
+            document.getElementById('witnessCountryBadge').innerText = `${country.nameEN} / ${country.nameTW}`;
+            document.getElementById('witnessName').innerText = country.characterName;
+            document.getElementById('witnessDescription').innerText = country.actionDescEN + " / " + country.actionDescTW;
+            document.getElementById('grammarQuestionText').innerText = country.question + " / " + country.questionTW;
+
+            const optionsContainer = document.getElementById('optionsContainer');
+            optionsContainer.innerHTML = '';
+            document.getElementById('feedbackBox').classList.add('hidden');
+
+            country.options.forEach((opt, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full text-left p-2.5 rounded-lg text-xs bg-gray-800/90 hover:bg-gray-700 text-gray-200 border border-amber-500/20 transition flex items-center justify-between font-medium';
+                btn.innerHTML = `<span>${String.fromCharCode(65 + i)}. ${opt.text}</span>`;
+                btn.onclick = () => checkAnswer(opt.correct, country, btn);
+                optionsContainer.appendChild(btn);
+            });
+
+            updateRoadmapUI();
+        }
+
+        function checkAnswer(isCorrect, country, btnElement) {
+            const feedback = document.getElementById('feedbackBox');
+            feedback.classList.remove('hidden');
+
+            if (isCorrect) {
+                country.solved = true;
+                SoundFX.playSuccess();
+                feedback.className = 'mt-3 p-2.5 rounded-lg text-xs font-semibold bg-green-900/60 text-green-200 border border-green-500/40';
+                feedback.innerText = 'Correct! Great grammar deduction! / 答對了！絕佳的文法推理！';
+                btnElement.classList.add('bg-green-700/60', 'border-green-500');
+                triggerDetectiveCelebrate();
+            } else {
+                SoundFX.playError();
+                feedback.className = 'mt-3 p-2.5 rounded-lg text-xs font-semibold bg-red-900/60 text-red-200 border border-red-500/40';
+                feedback.innerText = 'Incorrect! Review past progressive rules. / 答錯了！請檢查過去進行式文法。';
+                btnElement.classList.add('bg-red-700/60', 'border-red-500');
+            }
+            updateRoadmapUI();
+        }
+
+        function replayWitnessAction() {
+            SoundFX.playClick();
+            showDialogue("Replaying Witness Action", "At 7:00 p.m., the witness performed their action.");
+        }
+
+        function switchSidebarTab(tab) {
+            SoundFX.playClick();
+            const tabQuest = document.getElementById('tabQuest');
+            const tabInventory = document.getElementById('tabInventory');
+            const panelQuest = document.getElementById('panelQuest');
+            const panelInventory = document.getElementById('panelInventory');
+
+            if (tab === 'quest') {
+                tabQuest.className = 'flex-1 py-3 text-center text-xs md:text-sm font-bold text-amber-300 border-b-2 border-amber-400 bg-amber-950/30 transition';
+                tabInventory.className = 'flex-1 py-3 text-center text-xs md:text-sm font-bold text-gray-400 border-b-2 border-transparent hover:text-amber-200 transition';
+                panelQuest.classList.remove('hidden');
+                panelInventory.classList.add('hidden');
+            } else {
+                tabInventory.className = 'flex-1 py-3 text-center text-xs md:text-sm font-bold text-amber-300 border-b-2 border-amber-400 bg-amber-950/30 transition';
+                tabQuest.className = 'flex-1 py-3 text-center text-xs md:text-sm font-bold text-gray-400 border-b-2 border-transparent hover:text-amber-200 transition';
+                panelInventory.classList.remove('hidden');
+                panelQuest.classList.add('hidden');
+            }
+        }
+
+        function updateInventoryUI() {
+            document.getElementById('inventoryCount').innerText = inventory.length;
+            document.getElementById('invHeaderCount').innerText = `${inventory.length} / 5`;
+            const grid = document.getElementById('inventoryGrid');
+            grid.innerHTML = '';
+
+            inventory.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'p-3 rounded-xl bg-gray-900/90 border border-amber-500/40 flex items-center space-x-3';
+                card.innerHTML = `
+                    <div class="w-10 h-10 bg-amber-600/30 rounded-lg flex items-center justify-center text-amber-300 border border-amber-500/50 font-bold">證</div>
+                    <div class="flex-1">
+                        <h5 class="text-xs font-bold text-amber-200">${item.name}</h5>
+                        <p class="text-[11px] text-gray-400">${item.desc}</p>
+                        <span class="text-[10px] bg-amber-950 px-2 py-0.5 rounded text-amber-300 border border-amber-600/30 inline-block mt-1">${item.country}</span>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+
+            if (inventory.length === 5) {
+                document.getElementById('finalChestStatus').innerText = 'Final Chest: Unlocked! / 最終寶箱：已解鎖！';
+                document.getElementById('finalChestStatus').className = 'inline-block px-3 py-1 rounded-full text-xs font-bold bg-green-600 text-white border border-green-400';
+            }
+        }
+
+        function updateRoadmapUI() {
+            const roadmap = document.getElementById('countryRoadmap');
+            roadmap.innerHTML = '';
+
+            countriesData.forEach((c, i) => {
+                const row = document.createElement('div');
+                row.className = `flex items-center justify-between p-2 rounded-lg cursor-pointer transition ${i === currentRoomIndex ? 'bg-amber-600/20 border border-amber-500/50' : 'bg-gray-900/60 hover:bg-gray-800'}`;
+                row.onclick = () => switchRoom(i);
+                row.innerHTML = `
+                    <span class="font-bold text-gray-200">${c.nameEN} (${c.nameTW})</span>
+                    <div class="flex space-x-2 text-[11px]">
+                        <span class="${c.solved ? 'text-green-400' : 'text-gray-500'}">Alibi: ${c.solved ? '✓' : '...'}</span>
+                        <span class="${c.clueCollected ? 'text-amber-400' : 'text-gray-500'}">Clue: ${c.clueCollected ? '✓' : '...'}</span>
+                    </div>
+                `;
+                roadmap.appendChild(row);
+            });
+        }
+
+        // Classroom Competition Score & Timer Functions
+        function addScore(team) {
+            SoundFX.playClick();
+            if (team === 1) {
+                scoreTeam1++;
+                document.getElementById('score1').innerText = scoreTeam1;
+            } else {
+                scoreTeam2++;
+                document.getElementById('score2').innerText = scoreTeam2;
+            }
+        }
+
+        function toggleTimer() {
+            timerRunning = !timerRunning;
+        }
+
+        setInterval(() => {
+            if (timerRunning && timerSeconds > 0) {
+                timerSeconds--;
+                const mins = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
+                const secs = String(timerSeconds % 60).padStart(2, '0');
+                document.getElementById('timerDisplay').innerText = `${mins}:${secs}`;
+            }
+        }, 1000);
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        function resetGame() {
+            window.location.reload();
+        }
+
+        // Initialize App on Window Load
+        window.onload = function () {
+            resizeCanvases();
+            loadWitnessChallenge(0);
+            updateRoadmapUI();
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
